@@ -1,491 +1,1004 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>USI (Unified Signature Infrastructure)</title>
-  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USI · Unified Signature Infrastructure</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
-  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <link
+    rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230F0F0E'/%3E%3Cpath d='M8 21 Q12 10 16 17 T24 14' stroke='%23E8E4DA' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"
+  />
+
   <style>
-    body { font-family: 'Inter', sans-serif; background-color: #fafafa; color: #111; margin: 0; padding: 0; overflow: hidden; }
-    .signature-font { font-family: 'Caveat', cursive; }
-    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    :root {
+      --paper: #faf9f4;
+      --paper-warm: #f3efe6;
+      --ink: #0f0f0e;
+      --ink-2: #2a2924;
+      --muted: #6b6862;
+      --hairline: #e8e4da;
+      --hairline-strong: #d4cebf;
+      --verified: #0f4c3a;
+      --verified-soft: #e6efe9;
+      --danger: #8e1f1f;
+      --danger-soft: #f7e8e6;
+    }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--paper); color: var(--ink);
+      font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(900px 600px at 100% 0%, rgba(15,76,58,0.04), transparent 60%),
+        radial-gradient(700px 500px at 0% 100%, rgba(15,15,14,0.025), transparent 55%);
+    }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
     canvas { touch-action: none; }
-    
-    .minimal-input {
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      transition: all 0.2s;
+    ::selection { background: var(--ink); color: var(--paper); }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+
+    .reveal { animation: reveal .35s cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-    .minimal-input:focus {
-      border-color: #111;
-      box-shadow: 0 0 0 1px #111;
-      outline: none;
+
+    .pad-paper {
+      background-image: repeating-linear-gradient(180deg, transparent 0 31px, rgba(15,15,14,.05) 31px 32px);
+      background-color: var(--paper-warm);
     }
+
+    .otp-cell {
+      width: 100%; aspect-ratio: 1 / 1.15;
+      text-align: center;
+      font: 600 22px/1 'IBM Plex Mono', monospace;
+      background: #fff;
+      border: 1.5px solid var(--hairline-strong);
+      border-radius: 10px;
+      transition: border-color .15s, transform .15s, box-shadow .15s;
+    }
+    .otp-cell:focus { outline: 0; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(15,15,14,.08); transform: translateY(-1px); }
+    .otp-cell.filled { border-color: var(--ink); }
+
+    .btn-primary {
+      background: var(--ink); color: var(--paper);
+      padding: 12px 16px; border-radius: 10px;
+      font-weight: 500; font-size: 14px;
+      transition: background .15s, transform .15s;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary:hover:not(:disabled) { background: #292826; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-ghost {
+      background: #fff; color: var(--ink);
+      border: 1px solid var(--hairline-strong);
+      padding: 12px 16px; border-radius: 10px;
+      font-weight: 500; font-size: 14px;
+      transition: border-color .15s;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-ghost:hover { border-color: var(--ink); }
+
+    .card { background: #fff; border: 1px solid var(--hairline); border-radius: 14px; box-shadow: 0 1px 0 rgba(15,15,14,.02), 0 4px 14px -8px rgba(15,15,14,.08); }
+    .label-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+    .label-field { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(40px);
+      background: var(--ink); color: var(--paper);
+      padding: 11px 18px; border-radius: 999px;
+      font-size: 13px; opacity: 0;
+      transition: opacity .25s, transform .3s ease;
+      z-index: 100; pointer-events: none;
+      display: inline-flex; align-items: center; gap: 8px;
+      box-shadow: 0 20px 40px -10px rgba(15,15,14,.4);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
+  <div id="toast" class="toast">
+    <span>✓</span>
+    <span id="toast-msg">Copied</span>
+  </div>
+
   <script type="text/babel">
-    const { useState, useRef, useEffect } = React;
+    const { useState, useRef, useEffect, Fragment } = React;
+
+    /* =================================================================
+       CONFIG
+       ================================================================= */
+    const STEPS = [
+      { n: 1, label: 'Enrol' },
+      { n: 2, label: 'Use' },
+      { n: 3, label: 'Audit' },
+      { n: 4, label: 'About' },
+    ];
 
     const USE_CASES = {
-      hospital: { id: 'hospital', label: '🏥 Hospital', title: 'Global Hospital Reg.', entity: 'Global Hospital API', role: 'Patient Name', consent: 'medical procedures and hospital admission.' },
-      bank: { id: 'bank', label: '🏦 Bank', title: 'FinCorp Bank KYC', entity: 'FinCorp Bank API', role: 'Account Holder', consent: 'account opening and financial terms & conditions.' },
-      gov: { id: 'gov', label: '🏛️ Government', title: 'National Tax Portal', entity: 'Gov Tax Dept API', role: 'Citizen Name', consent: 'official tax declaration and legal submissions.' },
-      event: { id: 'event', label: '🎟️ Conference', title: 'Tech Summit 2026', entity: 'Tech Summit Reg.', role: 'Attendee Name', consent: 'event registration and liability waiver.' }
+      hospital: { id:'hospital', label:'Hospital', title:'AIIMS · OPD Admission', entity:'AIIMS New Delhi', purpose:'OPD-ADMISSION', roleLabel:'Patient name' },
+      bank:     { id:'bank',     label:'Bank',     title:'SBI · Account Opening (KYC)', entity:'State Bank of India', purpose:'KYC-ACCOUNT-OPENING', roleLabel:'Account holder' },
+      gov:      { id:'gov',      label:'Government', title:'Income Tax · ITR-1 Filing', entity:'Income Tax Department', purpose:'ITR-1-FY2025-26', roleLabel:'Assessee name' },
+      edu:      { id:'edu',      label:'Education',  title:'NSP · Scholarship Application', entity:'National Scholarship Portal', purpose:'SCHOLARSHIP-2026', roleLabel:'Applicant' },
     };
 
-    function App() {
-      const [page, setPage] = useState(1); // 1, 2, 3, or 4
-      
-      // --- Page 1: Enrollment State ---
-      const [signMode, setSignMode] = useState("draw"); // draw or upload
-      const [signatureImage, setSignatureImage] = useState(null);
-      const [otpStep, setOtpStep] = useState(false);
-      const [otpValue, setOtpValue] = useState("");
-      const [dsid, setDsid] = useState(null);
-      const [isGenerating, setIsGenerating] = useState(false);
-      
-      const canvasRef = useRef(null);
-      const [isDrawing, setIsDrawing] = useState(false);
+    const DEMO_HOLDER = 'Sachin Gupta';
 
-      // --- Page 2: Usage State ---
-      const [activeUseCase, setActiveUseCase] = useState(USE_CASES.hospital);
-      const [enteredDsid, setEnteredDsid] = useState("");
-      const [showConsent, setShowConsent] = useState(false);
-      const [status, setStatus] = useState("idle");
-      
-      // --- Page 3: Audit State ---
-      const [auditLogs, setAuditLogs] = useState([]);
+    /* =================================================================
+       UTILITIES
+       ================================================================= */
+    const generateDsid = () => {
+      const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+      let s = '';
+      for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+      return `DSID-${s.slice(0,4)}-${s.slice(4,8)}`;
+    };
 
-      // --- Canvas Logic (Page 1) ---
-      useEffect(() => {
-        if (page === 1 && signMode === "draw" && canvasRef.current && !dsid && !otpStep) {
-          const canvas = canvasRef.current;
-          const ctx = canvas.getContext('2d');
-          ctx.lineWidth = 2.5;
-          ctx.lineCap = 'round';
-          ctx.strokeStyle = '#000'; 
-        }
-      }, [page, signMode, dsid, otpStep]);
+    const shortToken = () => Math.random().toString(36).slice(2,8) + Date.now().toString(36).slice(-4);
+    const now = () => new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
 
-      const startDrawing = (e) => {
-        if (dsid || otpStep || signMode !== "draw") return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        
-        ctx.beginPath();
-        ctx.moveTo(clientX - rect.left, clientY - rect.top);
-        setIsDrawing(true);
-      };
+    const showToast = (msg = 'Copied') => {
+      const el = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      el.classList.add('show');
+      clearTimeout(window.__toastT);
+      window.__toastT = setTimeout(() => el.classList.remove('show'), 1700);
+    };
 
-      const draw = (e) => {
-        if (!isDrawing || dsid || otpStep || signMode !== "draw") return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        
-        ctx.lineTo(clientX - rect.left, clientY - rect.top);
-        ctx.stroke();
-      };
-
-      const stopDrawing = () => {
-        if (isDrawing && !dsid) {
-          setIsDrawing(false);
-          setSignatureImage(canvasRef.current.toDataURL());
-        }
-      };
-
-      const clearCanvas = () => {
-        if (dsid) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        setSignatureImage(null);
-      };
-
-      const handleFileUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (event) => setSignatureImage(event.target.result);
-          reader.readAsDataURL(file);
-        }
-      };
-
-      // --- Core Workflows ---
-      const handleRequestOTP = () => {
-        if (!signatureImage) return alert("Please provide your signature first.");
-        setOtpStep(true);
-      };
-
-      const handleVerifyOTP = (e) => {
-        e.preventDefault();
-        if(otpValue.length < 4) return alert("Enter valid OTP");
-        setIsGenerating(true);
-        
-        setTimeout(() => {
-          const generatedDsid = "DSID-GBL-88X2-V9M";
-          setDsid(generatedDsid);
-          // INTENTIONALLY NOT AUTO-FILLING ENTERED DSID FOR PAGE 2
-          setIsGenerating(false);
-          setOtpStep(false);
-          addLog("Enrollment", "National ID Vault", "Vaulted");
-        }, 1000);
-      };
-
-      const handleSubmitIntegration = (e) => {
-        e.preventDefault();
-        if (enteredDsid !== dsid) {
-          alert("Invalid DSID. Please use the exact ID generated in Step 1.");
-          return;
-        }
-        setShowConsent(true);
-      };
-
-      const handleConsent = (approved) => {
-        setShowConsent(false);
-        setStatus(approved ? "approved" : "denied");
-        
-        if(approved) {
-           addLog("Signature Injection", activeUseCase.entity, "Approved");
-        } else {
-           addLog("Signature Injection", activeUseCase.entity, "Denied");
-        }
-      };
-      
-      const addLog = (action, entity, initialStatus) => {
-         const newLog = {
-            id: Math.random().toString(36).substr(2, 9),
-            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}),
-            action,
-            entity,
-            status: initialStatus
-         };
-         setAuditLogs(prev => [newLog, ...prev]);
-      };
-
-      const handleRevoke = (logId) => {
-        setAuditLogs(logs => logs.map(log => 
-            log.id === logId ? { ...log, status: 'Revoked', time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) } : log
-        ));
-      };
-
-      const resetApp = () => {
-         setPage(1);
-         setSignMode("draw");
-         setSignatureImage(null);
-         setOtpStep(false);
-         setOtpValue("");
-         setDsid(null);
-         setEnteredDsid("");
-         setStatus("idle");
-         setAuditLogs([]);
-         setActiveUseCase(USE_CASES.hospital);
-      };
-
-      // --- UI Components ---
-      const Header = ({ step, title }) => (
-        <header className="w-full flex justify-between items-center py-6 px-10 border-b border-gray-200 bg-white absolute top-0 z-10">
-          <div className="flex items-center space-x-3">
-             <div className="w-8 h-8 bg-black text-white rounded-md flex items-center justify-center font-bold text-sm">{step}</div>
-             <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-          </div>
-          <div className="flex space-x-2 text-sm font-medium text-gray-400">
-             <span className={page === 1 ? 'text-black' : ''}>Vault</span>
-             <span>&rarr;</span>
-             <span className={page === 2 ? 'text-black' : ''}>API Usage</span>
-             <span>&rarr;</span>
-             <span className={page === 3 ? 'text-black' : ''}>Audit</span>
-             <span>&rarr;</span>
-             <span className={page === 4 ? 'text-black' : ''}>Summary</span>
-          </div>
-        </header>
+    const copyText = (text) => {
+      navigator.clipboard?.writeText(text).then(
+        () => showToast('Copied to clipboard'),
+        () => showToast('Copy failed')
       );
+    };
+
+    /* Watermark composer — layers signature over diagonal repeating
+       DSID/HOLDER text + verification seal + audit token. Returns PNG dataURL. */
+    function composeWatermarked(sigDataUrl, opts) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const W = 720, H = 240;
+          const c = document.createElement('canvas');
+          c.width = W; c.height = H;
+          const ctx = c.getContext('2d');
+
+          ctx.fillStyle = '#FCFAF4';
+          ctx.fillRect(0, 0, W, H);
+
+          ctx.strokeStyle = 'rgba(15,15,14,0.08)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+
+          // Diagonal repeating watermark text
+          ctx.save();
+          ctx.translate(W/2, H/2);
+          ctx.rotate(-Math.PI / 10);
+          ctx.font = '500 11px "IBM Plex Mono", monospace';
+          ctx.fillStyle = 'rgba(15,76,58,0.07)';
+          ctx.textAlign = 'center';
+          const wm = `${opts.dsid} · ${opts.holder.toUpperCase()} · USI VERIFIED`;
+          for (let y = -H; y <= H; y += 22) ctx.fillText(wm, 0, y);
+          ctx.restore();
+
+          // Signature
+          const maxH = 120, maxW = W - 120;
+          const r = Math.min(maxW / img.width, maxH / img.height, 1);
+          const sw = img.width * r, sh = img.height * r;
+          ctx.drawImage(img, (W - sw)/2, (H - sh)/2 - 14, sw, sh);
+
+          // Seal top-left
+          ctx.save();
+          ctx.strokeStyle = 'rgba(15,76,58,0.55)';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.arc(36, 36, 22, 0, Math.PI*2); ctx.stroke();
+          ctx.beginPath(); ctx.arc(36, 36, 18, 0, Math.PI*2); ctx.stroke();
+          ctx.fillStyle = 'rgba(15,76,58,0.92)';
+          ctx.font = '700 10px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('USI', 36, 34);
+          ctx.font = '500 7px "IBM Plex Mono", monospace';
+          ctx.fillText('VERIFIED', 36, 45);
+          ctx.restore();
+
+          // Top-right meta
+          ctx.fillStyle = 'rgba(15,15,14,0.4)';
+          ctx.font = '500 9px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText('GOV.IN · USI', W - 16, 24);
+          ctx.fillText(opts.purpose, W - 16, 38);
+
+          // Bottom strip
+          ctx.fillStyle = 'rgba(15,15,14,0.55)';
+          ctx.font = '500 10px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(`${opts.dsid}  ·  ${opts.holder}`, 16, H - 20);
+          ctx.textAlign = 'right';
+          ctx.fillText(`${opts.entity}  ·  ${opts.timestamp}`, W - 16, H - 20);
+
+          ctx.fillStyle = 'rgba(15,76,58,0.85)';
+          ctx.font = '500 9px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`audit://${opts.token}`, W/2, H - 8);
+
+          resolve(c.toDataURL('image/png'));
+        };
+        img.src = sigDataUrl;
+      });
+    }
+
+    /* =================================================================
+       SHARED COMPONENTS
+       ================================================================= */
+    const ProgressBar = ({ step }) => (
+      <header className="sticky top-0 z-30 backdrop-blur-md bg-[rgba(250,249,244,0.82)] border-b border-stone-200">
+        <div className="max-w-3xl mx-auto px-5 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-md bg-black grid place-items-center text-white mono text-[11px] font-semibold flex-shrink-0">U</div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium tracking-tight leading-tight">USI</div>
+              <div className="text-[9.5px] mono uppercase tracking-[0.14em] text-stone-500 leading-tight truncate">Unified Signature Infrastructure</div>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-1.5">
+            {STEPS.map((s, i) => (
+              <Fragment key={s.n}>
+                <div className="flex items-center gap-1.5">
+                  <div className={'w-5 h-5 rounded-full grid place-items-center text-[10px] mono transition-colors ' + (step === s.n ? 'bg-black text-white' : step > s.n ? 'bg-stone-200 text-stone-500' : 'border border-stone-300 text-stone-400')}>
+                    {step > s.n ? '✓' : s.n}
+                  </div>
+                  <span className={'text-[10.5px] mono uppercase tracking-[0.12em] ' + (step === s.n ? 'text-black' : step > s.n ? 'text-stone-500' : 'text-stone-400')}>
+                    {s.label}
+                  </span>
+                </div>
+                {i < STEPS.length - 1 && <div className="w-5 h-px bg-stone-300" />}
+              </Fragment>
+            ))}
+          </div>
+          <div className="sm:hidden mono text-[10px] uppercase tracking-[0.14em] text-stone-500">Step {step} / 4</div>
+        </div>
+      </header>
+    );
+
+    const PageHead = ({ eyebrow, title, sub }) => (
+      <div className="mb-7 reveal">
+        <div className="label-eyebrow mb-3">{eyebrow}</div>
+        <h1 className="text-[28px] sm:text-[32px] leading-[1.05] tracking-[-0.02em] font-medium">{title}</h1>
+        {sub && <p className="mt-2 text-[14.5px] text-stone-500 max-w-md leading-snug">{sub}</p>}
+      </div>
+    );
+
+    const Stamp = ({ children }) => (
+      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--verified-soft)] text-[var(--verified)] mono text-[10px] uppercase tracking-[0.12em] font-semibold">
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--verified)]" /> {children}
+      </span>
+    );
+
+    /* =================================================================
+       SIGNATURE PAD (smoothed canvas with auto-trim)
+       ================================================================= */
+    function SignaturePad({ value, onChange }) {
+      const ref = useRef(null);
+      const ctxRef = useRef(null);
+      const lastRef = useRef({ x: 0, y: 0 });
+      const drawingRef = useRef(false);
+      const hasInkRef = useRef(false);
+      const [hasInk, setHasInk] = useState(false);
+
+      const setup = () => {
+        const c = ref.current;
+        if (!c) return;
+        const dpr = window.devicePixelRatio || 1;
+        const r = c.getBoundingClientRect();
+        c.width = Math.max(1, Math.floor(r.width * dpr));
+        c.height = Math.max(1, Math.floor(r.height * dpr));
+        const ctx = c.getContext('2d');
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.lineWidth = 2.6; ctx.strokeStyle = '#0F0F0E';
+        ctxRef.current = ctx;
+      };
+
+      useEffect(() => {
+        setup();
+        const onResize = () => {
+          const data = hasInkRef.current ? ref.current.toDataURL() : null;
+          setup();
+          if (data) {
+            const img = new Image();
+            img.onload = () => {
+              const r = ref.current.getBoundingClientRect();
+              ctxRef.current.drawImage(img, 0, 0, r.width, r.height);
+            };
+            img.src = data;
+          }
+        };
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+      }, []);
+
+      useEffect(() => {
+        if (!value && hasInkRef.current) {
+          const c = ref.current;
+          ctxRef.current.clearRect(0, 0, c.width, c.height);
+          hasInkRef.current = false; setHasInk(false);
+        }
+      }, [value]);
+
+      const getPos = (e) => {
+        const r = ref.current.getBoundingClientRect();
+        const t = e.touches?.[0] || e.changedTouches?.[0] || e;
+        return { x: t.clientX - r.left, y: t.clientY - r.top };
+      };
+
+      const start = (e) => {
+        e.preventDefault();
+        drawingRef.current = true;
+        const p = getPos(e); lastRef.current = p;
+        const ctx = ctxRef.current;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.3, 0, Math.PI * 2);
+        ctx.fillStyle = '#0F0F0E'; ctx.fill();
+        if (!hasInkRef.current) { hasInkRef.current = true; setHasInk(true); }
+      };
+      const move = (e) => {
+        if (!drawingRef.current) return;
+        e.preventDefault();
+        const p = getPos(e), last = lastRef.current;
+        const ctx = ctxRef.current;
+        const midX = (last.x + p.x) / 2, midY = (last.y + p.y) / 2;
+        ctx.beginPath();
+        ctx.moveTo(last.x, last.y);
+        ctx.quadraticCurveTo(last.x, last.y, midX, midY);
+        ctx.stroke();
+        lastRef.current = p;
+      };
+      const end = () => {
+        if (!drawingRef.current) return;
+        drawingRef.current = false;
+        onChange(trimToBoundingBox(ref.current));
+      };
+
+      const trimToBoundingBox = (canvas) => {
+        const ctx = canvas.getContext('2d');
+        const { width: W, height: H } = canvas;
+        const data = ctx.getImageData(0, 0, W, H).data;
+        let top = H, left = W, right = 0, bottom = 0, found = false;
+        for (let y = 0; y < H; y++) {
+          for (let x = 0; x < W; x++) {
+            if (data[(y * W + x) * 4 + 3] > 0) {
+              found = true;
+              if (x < left) left = x;
+              if (x > right) right = x;
+              if (y < top) top = y;
+              if (y > bottom) bottom = y;
+            }
+          }
+        }
+        if (!found) return null;
+        const dpr = window.devicePixelRatio || 1;
+        const pad = 6 * dpr;
+        left = Math.max(0, left - pad); top = Math.max(0, top - pad);
+        right = Math.min(W - 1, right + pad); bottom = Math.min(H - 1, bottom + pad);
+        const cw = right - left, ch = bottom - top;
+        const out = document.createElement('canvas');
+        out.width = cw; out.height = ch;
+        out.getContext('2d').drawImage(canvas, left, top, cw, ch, 0, 0, cw, ch);
+        return out.toDataURL('image/png');
+      };
+
+      const clear = () => {
+        const c = ref.current;
+        ctxRef.current.clearRect(0, 0, c.width, c.height);
+        hasInkRef.current = false; setHasInk(false);
+        onChange(null);
+      };
 
       return (
-        <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#fafafa]">
-          
-          {/* PAGE 1: ENROLLMENT */}
-          {page === 1 && (
-            <div className="h-full w-full flex flex-col pt-24 fade-in">
-              <Header step="1" title="National ID Portal" />
-              
-              <div className="flex-1 flex flex-col items-center justify-center px-4">
-                 <div className="max-w-md w-full">
-                    <div className="text-center mb-6">
-                       <h2 className="text-2xl font-medium tracking-tight mb-2">Initialize Your DSID</h2>
-                       <p className="text-gray-500 text-sm">Create your official signature to securely vault it.</p>
+        <div>
+          <div className="pad-paper rounded-xl border border-dashed border-stone-300 h-44 overflow-hidden relative">
+            <canvas
+              ref={ref}
+              className="w-full h-full block cursor-crosshair"
+              onMouseDown={start} onMouseMove={move} onMouseUp={end} onMouseLeave={end}
+              onTouchStart={start} onTouchMove={move} onTouchEnd={end}
+            />
+            {!hasInk && (
+              <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                <span className="text-stone-400 text-sm">sign here</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <button onClick={clear} disabled={!hasInk}
+              className="text-[11px] mono uppercase tracking-[0.12em] text-stone-500 hover:text-black disabled:opacity-30">Clear</button>
+            <span className="text-[10.5px] mono text-stone-400">Mouse · finger · stylus</span>
+          </div>
+        </div>
+      );
+    }
+
+    /* =================================================================
+       UPLOAD PAD (drag-drop image)
+       ================================================================= */
+    function UploadPad({ value, onChange }) {
+      const inputRef = useRef(null);
+      const [drag, setDrag] = useState(false);
+
+      const readFile = (file) => {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { showToast('Please drop an image file'); return; }
+        const r = new FileReader();
+        r.onload = (ev) => onChange(ev.target.result);
+        r.readAsDataURL(file);
+      };
+
+      return (
+        <div>
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+            onDragLeave={() => setDrag(false)}
+            onDrop={(e) => { e.preventDefault(); setDrag(false); readFile(e.dataTransfer.files?.[0]); }}
+            className={'pad-paper rounded-xl h-44 relative grid place-items-center overflow-hidden ' +
+              (drag ? 'border-2 border-dashed border-[var(--verified)]' : 'border border-dashed border-stone-300')}
+          >
+            {value ? (
+              <>
+                <img src={value} alt="Uploaded signature" className="max-h-full max-w-full object-contain p-3" />
+                <button
+                  onClick={() => { onChange(null); if (inputRef.current) inputRef.current.value = ''; }}
+                  className="absolute top-2 right-2 mono text-[10px] uppercase tracking-[0.12em] bg-white border border-stone-200 px-2 py-1 rounded text-stone-600 hover:text-black hover:border-black"
+                >
+                  Replace
+                </button>
+              </>
+            ) : (
+              <div className="text-center px-6">
+                <div className="text-stone-400 text-sm mb-2">Drop a PNG / JPG / SVG signature</div>
+                <button onClick={() => inputRef.current?.click()} className="btn-ghost text-[12.5px] py-1.5 px-3">
+                  Choose file
+                </button>
+              </div>
+            )}
+            <input
+              ref={inputRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => readFile(e.target.files?.[0])}
+            />
+          </div>
+          <div className="text-[10.5px] mono text-stone-400 text-right mt-2">Transparent background recommended</div>
+        </div>
+      );
+    }
+
+    /* =================================================================
+       OTP MODAL
+       ================================================================= */
+    function OtpModal({ open, title, message, consent, onCancel, onConfirm }) {
+      const [vals, setVals] = useState(['', '', '', '', '', '']);
+      const inputs = useRef([]);
+      const [verifying, setVerifying] = useState(false);
+      const [secondsLeft, setSecondsLeft] = useState(90);
+
+      useEffect(() => {
+        if (open) {
+          setVals(['', '', '', '', '', '']);
+          setVerifying(false);
+          setSecondsLeft(90);
+          setTimeout(() => inputs.current[0]?.focus(), 60);
+        }
+      }, [open]);
+
+      useEffect(() => {
+        if (!open || !consent) return;
+        const t = setInterval(() => {
+          setSecondsLeft((s) => {
+            if (s <= 1) { clearInterval(t); onCancel?.('expired'); return 0; }
+            return s - 1;
+          });
+        }, 1000);
+        return () => clearInterval(t);
+      }, [open, consent]);
+
+      const full = vals.every((v) => v !== '');
+
+      const handleChange = (i, raw) => {
+        const v = raw.replace(/\D/g, '').slice(0, 1);
+        const next = [...vals]; next[i] = v; setVals(next);
+        if (v && i < 5) inputs.current[i + 1]?.focus();
+      };
+      const handleKey = (i, e) => {
+        if (e.key === 'Backspace' && !vals[i] && i > 0) inputs.current[i - 1]?.focus();
+        if (e.key === 'ArrowLeft' && i > 0) inputs.current[i - 1]?.focus();
+        if (e.key === 'ArrowRight' && i < 5) inputs.current[i + 1]?.focus();
+      };
+      const handlePaste = (e) => {
+        const txt = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+        const digits = txt.replace(/\D/g, '').slice(0, 6).split('');
+        if (!digits.length) return;
+        e.preventDefault();
+        const next = [...vals];
+        digits.forEach((d, k) => (next[k] = d));
+        setVals(next);
+        inputs.current[Math.min(5, digits.length - 1)]?.focus();
+      };
+
+      const submit = () => {
+        if (!full) return;
+        setVerifying(true);
+        setTimeout(() => { setVerifying(false); onConfirm?.(); }, 700);
+      };
+
+      if (!open) return null;
+
+      return (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm grid place-items-center p-4 reveal"
+          onClick={(e) => { if (e.target === e.currentTarget) onCancel?.('dismiss'); }}>
+          <div className="card w-full max-w-[440px] overflow-hidden">
+            <div className="px-6 pt-6 pb-3 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-black text-white grid place-items-center mono text-sm font-semibold flex-shrink-0">a</div>
+                <div className="min-w-0">
+                  <div className="label-eyebrow">Aadhaar Authentication</div>
+                  <div className="text-[17px] font-medium tracking-tight mt-0.5 truncate">{title}</div>
+                </div>
+              </div>
+              <button onClick={() => onCancel?.('dismiss')}
+                className="w-7 h-7 rounded-full border border-stone-200 text-stone-500 hover:text-black hover:border-black grid place-items-center text-sm flex-shrink-0"
+                aria-label="Close">×</button>
+            </div>
+
+            <div className="px-6 pb-5 -mt-1">
+              <p className="text-[13.5px] text-stone-600 leading-relaxed">{message}</p>
+
+              {consent && (
+                <div className="mt-4 bg-stone-50 border border-stone-200 rounded-lg p-3 grid gap-1.5">
+                  {[
+                    ['Requester', consent.requester],
+                    ['Purpose', consent.purpose],
+                    ['Txn ID', consent.tx],
+                    ['Expires in', `${secondsLeft}s`],
+                  ].map(([k, v]) => (
+                    <div key={k} className="flex justify-between gap-3 text-[12.5px]">
+                      <span className="label-field">{k}</span>
+                      <span className={`mono text-[12.5px] ${k === 'Txn ID' ? 'text-stone-500' : 'text-black font-medium'}`}>{v}</span>
                     </div>
+                  ))}
+                </div>
+              )}
 
-                    {!dsid && !otpStep && (
-                      <div className="space-y-4">
-                        
-                        <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg">
-                           <button onClick={() => {setSignMode("draw"); setSignatureImage(null);}} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${signMode === "draw" ? "bg-white shadow-sm text-black" : "text-gray-500 hover:text-black"}`}>Draw</button>
-                           <button onClick={() => {setSignMode("upload"); setSignatureImage(null);}} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${signMode === "upload" ? "bg-white shadow-sm text-black" : "text-gray-500 hover:text-black"}`}>Upload</button>
-                        </div>
+              <div className="grid grid-cols-6 gap-2 mt-5">
+                {vals.map((v, i) => (
+                  <input key={i} ref={(el) => (inputs.current[i] = el)}
+                    inputMode="numeric" maxLength={1} value={v}
+                    onChange={(e) => handleChange(i, e.target.value)}
+                    onKeyDown={(e) => handleKey(i, e)} onPaste={handlePaste}
+                    className={`otp-cell ${v ? 'filled' : ''}`} />
+                ))}
+              </div>
 
-                        <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-sm relative">
-                          {signMode === "draw" ? (
-                              <>
-                                <canvas ref={canvasRef} width={450} height={180} className="w-full h-40 bg-gray-50 rounded-lg cursor-crosshair" onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} />
-                                <button onClick={clearCanvas} className="absolute bottom-4 right-4 text-xs font-medium text-gray-500 hover:text-black bg-white px-3 py-1 rounded shadow-sm border border-gray-200">Clear</button>
-                              </>
-                          ) : (
-                              <div className="w-full h-40 bg-gray-50 rounded-lg flex items-center justify-center relative overflow-hidden">
-                                {!signatureImage ? (
-                                   <input type="file" accept="image/*" onChange={handleFileUpload} className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-black file:text-white cursor-pointer" />
-                                ) : (
-                                   <>
-                                     <img src={signatureImage} className="max-h-full max-w-full object-contain p-2" alt="Uploaded Signature" />
-                                     <button onClick={() => setSignatureImage(null)} className="absolute top-2 right-2 text-xs bg-white px-2 py-1 rounded shadow border border-gray-200">Change</button>
-                                   </>
-                                )}
-                              </div>
-                          )}
-                        </div>
-                        <button onClick={handleRequestOTP} className="w-full bg-black text-white font-medium py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors">
-                          Save to Secure Vault
-                        </button>
-                      </div>
-                    )}
-
-                    {otpStep && (
-                       <div className="bg-white p-6 border border-gray-200 rounded-xl shadow-sm fade-in text-center">
-                          <p className="text-sm text-gray-500 mb-4">Enter the 6-digit OTP sent to your Aadhaar-linked mobile.</p>
-                          <form onSubmit={handleVerifyOTP} className="space-y-4">
-                             <input type="text" maxLength="6" value={otpValue} onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ''))} placeholder="• • • • • •" className="minimal-input w-full p-3 text-center text-xl tracking-widest font-mono" required />
-                             <button type="submit" disabled={isGenerating} className="w-full bg-black text-white font-medium py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors">
-                               {isGenerating ? 'Encrypting...' : 'Verify OTP & Generate'}
-                             </button>
-                          </form>
-                       </div>
-                    )}
-
-                    {dsid && (
-                      <div className="bg-white border border-gray-200 p-6 rounded-xl fade-in text-center shadow-sm">
-                        <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-1">Signature Vaulted</h3>
-                        <p className="text-sm text-gray-500 mb-4">Your unique Digital Signature ID is ready.</p>
-                        
-                        <div className="bg-gray-50 border border-gray-200 py-2 px-4 rounded-lg inline-block mb-6 select-all">
-                           <span className="text-xl font-mono tracking-wider font-bold">{dsid}</span>
-                        </div>
-                        
-                        <button onClick={() => setPage(2)} className="w-full bg-black text-white font-medium py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors">
-                          Proceed to API Integration &rarr;
-                        </button>
-                      </div>
-                    )}
-                 </div>
+              <div className="mono text-[11px] text-stone-400 text-center mt-3">
+                Demo mode · enter any 6 digits (try <span className="text-[var(--verified)] font-semibold">123 456</span>)
               </div>
             </div>
-          )}
 
-          {/* PAGE 2: USAGE */}
-          {page === 2 && (
-            <div className="h-full w-full flex flex-col pt-24 fade-in">
-              <Header step="2" title="Third-Party Integration" />
-              
-              <div className="flex-1 flex flex-col items-center justify-center px-4 relative">
-                 <div className="max-w-xl w-full">
-                    
-                    {/* Scenario Selector */}
-                    {status === "idle" && !showConsent && (
-                       <div className="mb-6 flex justify-center space-x-2 fade-in">
-                          {Object.values(USE_CASES).map(uc => (
-                             <button key={uc.id} onClick={() => setActiveUseCase(uc)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${activeUseCase.id === uc.id ? 'bg-black text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                                {uc.label}
-                             </button>
-                          ))}
-                       </div>
-                    )}
+            <div className="px-6 pb-6 flex gap-2 justify-end">
+              <button onClick={() => onCancel?.('deny')} className="btn-ghost">Deny</button>
+              <button onClick={submit} disabled={!full || verifying} className="btn-primary">
+                {verifying ? 'Verifying…' : (consent ? 'Approve & release' : 'Verify')}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
-                    <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
-                        <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
-                           <h3 className="font-medium text-gray-900">{activeUseCase.title}</h3>
-                           <span className="text-[10px] px-2 py-1 bg-blue-50 text-blue-600 rounded uppercase font-bold tracking-wider">Verified Partner API</span>
-                        </div>
-                        
-                        <form onSubmit={handleSubmitIntegration} className="space-y-4">
-                          <div>
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">{activeUseCase.role}</label>
-                            <input type="text" value="Jane Doe (Verified by DPI)" disabled className="minimal-input w-full p-2.5 text-sm bg-gray-50 text-gray-500 cursor-not-allowed" />
+    /* =================================================================
+       APP
+       ================================================================= */
+    function App() {
+      const [page, setPage] = useState(1);
+
+      const [sigMode, setSigMode] = useState('draw');
+      const [sigImage, setSigImage] = useState(null);
+      const [dsid, setDsid] = useState(null);
+
+      const [modal, setModal] = useState(null);
+
+      const [activeCase, setActiveCase] = useState(USE_CASES.hospital);
+      const [enteredDsid, setEnteredDsid] = useState('');
+      const [signedComposite, setSignedComposite] = useState(null);
+      const [signedMeta, setSignedMeta] = useState(null);
+
+      const [logs, setLogs] = useState([]);
+
+      const addLog = (entry) => setLogs((L) => [{ id: shortToken(), time: now(), ...entry }, ...L]);
+
+      /* Enrolment flow */
+      const requestEnrolOtp = () => {
+        if (!sigImage) { showToast('Provide your signature first'); return; }
+        setModal({
+          kind: 'enrol',
+          title: 'Confirm enrolment',
+          message: 'An OTP has been sent to the mobile number linked with your Aadhaar. Approve to securely vault your signature.',
+        });
+      };
+      const confirmEnrol = () => {
+        const id = generateDsid();
+        setDsid(id); setModal(null);
+        addLog({ action: 'Enrolment', entity: 'USI Signature Vault', status: 'Vaulted' });
+        showToast('Signature vaulted ✓');
+      };
+
+      /* Use flow */
+      const requestSign = (e) => {
+        e?.preventDefault();
+        if (!dsid) { showToast('Enrol your DSID in Step 01 first'); return; }
+        const entered = enteredDsid.trim().toUpperCase();
+        if (entered !== dsid) { showToast('DSID does not match. Use the one from Step 01.'); return; }
+        const tx = `tx_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+        setModal({
+          kind: 'use',
+          title: `${activeCase.entity} requests your signature`,
+          message: 'This third-party portal is asking for one-time access to inject your verified signature. Only this transaction. Audit-logged.',
+          consent: { requester: activeCase.entity, purpose: activeCase.purpose, tx },
+        });
+      };
+
+      const confirmUse = async (consent) => {
+        const ts = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+        const token = shortToken();
+        const composite = await composeWatermarked(sigImage, {
+          dsid, holder: DEMO_HOLDER, entity: consent.requester,
+          purpose: consent.purpose, timestamp: ts, token,
+        });
+        setSignedComposite(composite);
+        setSignedMeta({ ts, token, ...consent });
+        addLog({ action: 'Signature release', entity: consent.requester, purpose: consent.purpose, token, status: 'Approved' });
+        setModal(null);
+        showToast('Signature applied · audit logged');
+      };
+
+      const denyUse = (consent) => {
+        addLog({ action: 'Signature release', entity: consent.requester, purpose: consent.purpose, status: 'Denied' });
+        showToast('Request denied');
+      };
+
+      const resetUse = () => { setSignedComposite(null); setSignedMeta(null); setEnteredDsid(''); };
+
+      /* Audit */
+      const revoke = (id) => {
+        setLogs((L) => L.map((l) => (l.id === id ? { ...l, status: 'Revoked', time: now() } : l)));
+        showToast('Access revoked');
+      };
+      const exportLogs = () => {
+        if (!logs.length) { showToast('No events to export'); return; }
+        const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `usi-audit-${Date.now()}.json`; a.click();
+        URL.revokeObjectURL(url);
+        showToast('Audit log exported');
+      };
+
+      const reset = () => {
+        setPage(1);
+        setSigMode('draw'); setSigImage(null); setDsid(null);
+        setActiveCase(USE_CASES.hospital); setEnteredDsid(''); setSignedComposite(null); setSignedMeta(null);
+        setLogs([]);
+      };
+
+      return (
+        <div className="min-h-screen relative" style={{ zIndex: 1 }}>
+          <ProgressBar step={page} />
+
+          <main className="max-w-3xl mx-auto px-5 pt-10 pb-24">
+
+            {/* ====== STEP 1: ENROL ====== */}
+            {page === 1 && (
+              <section className="reveal">
+                <PageHead
+                  eyebrow="Step 01 · Enrolment"
+                  title="Enrol your signature"
+                  sub="Once. Vaulted under Aadhaar. Reusable across every portal that asks for ink."
+                />
+
+                {!dsid && (
+                  <div className="card p-5">
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                      <span className="label-field">Provide your signature</span>
+                      <div className="flex p-0.5 bg-stone-100 rounded-lg">
+                        <button onClick={() => { setSigMode('draw'); setSigImage(null); }}
+                          className={'px-3 py-1 text-xs font-medium rounded-md transition-colors ' + (sigMode === 'draw' ? 'bg-white shadow-sm text-black' : 'text-stone-500')}>Draw</button>
+                        <button onClick={() => { setSigMode('upload'); setSigImage(null); }}
+                          className={'px-3 py-1 text-xs font-medium rounded-md transition-colors ' + (sigMode === 'upload' ? 'bg-white shadow-sm text-black' : 'text-stone-500')}>Upload</button>
+                      </div>
+                    </div>
+
+                    {sigMode === 'draw'
+                      ? <SignaturePad value={sigImage} onChange={setSigImage} />
+                      : <UploadPad value={sigImage} onChange={setSigImage} />}
+
+                    <button onClick={requestEnrolOtp} disabled={!sigImage} className="btn-primary w-full mt-5">
+                      Save to Vault <span aria-hidden>→</span>
+                    </button>
+                  </div>
+                )}
+
+                {dsid && (
+                  <div className="card p-6 reveal">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <Stamp>Vaulted</Stamp>
+                      <span className="mono text-[10px] uppercase tracking-[0.14em] text-stone-400">Aadhaar-linked · {now()}</span>
+                    </div>
+                    <div className="label-field mt-5">Your Digital Signature ID</div>
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      <div className="mono text-[26px] sm:text-[30px] font-semibold tracking-wider">{dsid}</div>
+                      <button onClick={() => copyText(dsid)}
+                        className="mono text-[11px] uppercase tracking-[0.12em] border border-stone-300 hover:border-black px-2.5 py-1.5 rounded-md text-stone-600 hover:text-black">
+                        Copy
+                      </button>
+                    </div>
+
+                    <div className="mt-4 p-3 rounded-lg bg-stone-50 border border-stone-200 flex items-center gap-3">
+                      <img src={sigImage} alt="Your signature" className="h-12 max-w-[150px] object-contain" />
+                      <div className="text-[12.5px] text-stone-500">
+                        Encrypted, hashed, and stored in the Signature Vault. Only released with your real-time consent.
+                      </div>
+                    </div>
+
+                    <button onClick={() => setPage(2)} className="btn-primary w-full mt-5">
+                      Use it on a portal <span aria-hidden>→</span>
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ====== STEP 2: USE ====== */}
+            {page === 2 && (
+              <section className="reveal">
+                <PageHead
+                  eyebrow="Step 02 · Use it anywhere"
+                  title="Sign on any portal — with your DSID"
+                  sub="Pick a scenario. Enter your DSID. Approve the consent screen. Your watermarked signature is injected — and audit-logged."
+                />
+
+                {!dsid && (
+                  <div className="card p-5 flex items-center justify-between gap-4 mb-5 flex-wrap">
+                    <div>
+                      <div className="font-medium text-[15px]">You haven't enrolled yet</div>
+                      <div className="text-[13px] text-stone-500 mt-0.5">Complete Step 01 to get your DSID.</div>
+                    </div>
+                    <button onClick={() => setPage(1)} className="btn-primary">← Go to Step 01</button>
+                  </div>
+                )}
+
+                {dsid && !signedComposite && (
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {Object.values(USE_CASES).map((uc) => (
+                      <button key={uc.id} onClick={() => setActiveCase(uc)}
+                        className={'px-3 py-1.5 text-xs font-medium rounded-full transition-colors border ' +
+                          (activeCase.id === uc.id ? 'bg-black text-white border-black' : 'bg-white border-stone-200 text-stone-600 hover:border-black')}>
+                        {uc.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {dsid && (
+                  <div className="card p-5">
+                    <div className="flex items-center justify-between pb-3 border-b border-stone-100 mb-4 gap-3 flex-wrap">
+                      <div>
+                        <div className="font-medium text-[15px] tracking-tight">{activeCase.title}</div>
+                        <div className="label-field mt-0.5">{activeCase.entity}</div>
+                      </div>
+                      <span className="text-[10px] mono font-semibold uppercase tracking-[0.12em] text-stone-500 bg-stone-100 px-2 py-1 rounded">Partner API</span>
+                    </div>
+
+                    <form onSubmit={requestSign} className="space-y-4">
+                      <div>
+                        <label className="label-field block mb-1.5">{activeCase.roleLabel}</label>
+                        <input type="text" value={`${DEMO_HOLDER} (verified by DPI)`} disabled
+                          className="w-full p-2.5 rounded-md border border-stone-200 bg-stone-50 text-stone-500 text-[14px] cursor-not-allowed" />
+                      </div>
+
+                      {!signedComposite ? (
+                        <div>
+                          <label className="label-field block mb-1.5">Signature · enter your DSID</label>
+                          <div className="flex gap-2">
+                            <input type="text" value={enteredDsid}
+                              onChange={(e) => setEnteredDsid(e.target.value.toUpperCase())}
+                              placeholder="DSID-XXXX-XXXX"
+                              className="flex-1 p-2.5 rounded-md border border-stone-300 bg-white mono text-[14px] tracking-wider focus:outline-none focus:border-black focus:ring-2 focus:ring-black/5"
+                              required />
+                            <button type="submit" className="btn-primary px-4 whitespace-nowrap">Verify &amp; sign</button>
                           </div>
-
-                          {status === "idle" && (
-                            <div className="pt-2">
-                              <label className="block text-[10px] font-bold text-gray-900 uppercase tracking-wide mb-2">Sign via DSID</label>
-                              <div className="flex space-x-2">
-                                <input type="text" placeholder="Enter DSID manually..." value={enteredDsid} onChange={(e) => setEnteredDsid(e.target.value.toUpperCase())} className="minimal-input flex-1 p-2.5 font-mono text-sm" required />
-                                <button type="submit" className="bg-black text-white text-sm font-medium px-4 rounded-md hover:bg-gray-800">Inject</button>
-                              </div>
-                            </div>
-                          )}
-
-                          {status === "approved" && (
-                            <div className="pt-2 fade-in">
-                              <p className="block text-[10px] font-bold text-green-600 uppercase tracking-wide mb-2">Cryptographically Signed</p>
-                              <div className="bg-green-50 border border-green-100 p-3 rounded-lg flex items-center justify-between">
-                                 <img src={signatureImage} className="h-10 object-contain" alt="Signature" />
-                                 <span className="text-[10px] text-green-700 font-mono font-medium">{new Date().toLocaleTimeString()}</span>
-                              </div>
-                            </div>
-                          )}
-                        </form>
-                        
-                        {status === "approved" && (
-                            <button onClick={() => setPage(3)} className="mt-6 w-full bg-black text-white font-medium py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors">
-                              View Dashboard &rarr;
+                          <div className="mt-2 text-[11.5px] text-stone-500 flex items-center gap-2 flex-wrap">
+                            <span>Your DSID:</span>
+                            <button type="button" onClick={() => setEnteredDsid(dsid)}
+                              className="mono text-[var(--verified)] hover:underline">
+                              {dsid} · tap to use
                             </button>
-                        )}
-                    </div>
-                 </div>
-
-                 {/* REAL-TIME CONSENT MODAL */}
-                 {showConsent && (
-                    <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in">
-                      <div className="bg-white border border-gray-200 rounded-xl shadow-2xl p-6 w-full max-w-sm text-center">
-                        <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center mx-auto mb-3">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path></svg>
+                          </div>
                         </div>
-                        <h3 className="text-lg font-medium tracking-tight mb-1">Authorization Required</h3>
-                        <p className="text-xs text-gray-500 mb-6 leading-relaxed">
-                          <strong className="text-black">{activeUseCase.entity}</strong> requests API access to inject your verified digital signature for {activeUseCase.consent}
-                        </p>
-                        <div className="flex space-x-2">
-                          <button onClick={() => handleConsent(false)} className="flex-1 py-2.5 minimal-input bg-white text-gray-700 text-sm font-medium hover:bg-gray-50">Deny</button>
-                          <button onClick={() => handleConsent(true)} className="flex-1 py-2.5 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-800">Approve</button>
+                      ) : (
+                        <div className="reveal">
+                          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                            <Stamp>Signature applied</Stamp>
+                            <span className="mono text-[10.5px] text-stone-500">{signedMeta?.ts}</span>
+                          </div>
+                          <div className="rounded-lg border border-[var(--verified)]/30 bg-[var(--verified-soft)]/40 p-2 overflow-hidden">
+                            <img src={signedComposite} alt="Watermarked signature" className="w-full h-auto rounded-md" />
+                          </div>
+                          <div className="mt-2 mono text-[10.5px] text-stone-500 break-all">audit://{signedMeta?.token}</div>
+                          <div className="flex gap-2 mt-4 flex-wrap">
+                            <button type="button" onClick={resetUse} className="btn-ghost flex-1">Sign another</button>
+                            <button type="button" onClick={() => setPage(3)} className="btn-primary flex-1">
+                              View audit log <span aria-hidden>→</span>
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      )}
+                    </form>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ====== STEP 3: AUDIT ====== */}
+            {page === 3 && (
+              <section className="reveal">
+                <PageHead
+                  eyebrow="Step 03 · Audit"
+                  title="Your access ledger"
+                  sub="Every signature release. Every consent. One-tap revocation."
+                />
+
+                <div className="card overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-stone-200 bg-stone-50">
+                    <span className="label-field">{logs.length} {logs.length === 1 ? 'event' : 'events'}</span>
+                    <button onClick={exportLogs}
+                      className="text-[11px] mono uppercase tracking-[0.12em] text-stone-500 hover:text-black">
+                      Export JSON ↓
+                    </button>
+                  </div>
+
+                  {logs.length === 0 ? (
+                    <div className="px-5 py-10 text-center text-stone-400 text-sm">
+                      No events yet — use your DSID on Step 02 to populate the ledger.
                     </div>
-                 )}
-              </div>
-            </div>
-          )}
+                  ) : (
+                    <ul>
+                      {logs.map((l) => (
+                        <li key={l.id} className="px-5 py-3.5 border-b border-stone-100 last:border-b-0 flex items-center gap-4">
+                          <div className={'w-1.5 h-1.5 rounded-full flex-shrink-0 ' +
+                            (l.status === 'Approved' || l.status === 'Vaulted' ? 'bg-[var(--verified)]'
+                              : l.status === 'Denied' ? 'bg-[var(--danger)]' : 'bg-stone-400')} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[14px] font-medium tracking-tight truncate">{l.entity}</div>
+                            <div className="mono text-[11px] text-stone-500 mt-0.5 truncate">
+                              {l.action}{l.purpose ? ` · ${l.purpose}` : ''}{l.token ? ` · ${l.token}` : ''}
+                            </div>
+                          </div>
+                          <div className="mono text-[11px] text-stone-500 whitespace-nowrap hidden sm:block">{l.time}</div>
+                          <div className="flex-shrink-0">
+                            {l.status === 'Approved' ? (
+                              <button onClick={() => revoke(l.id)}
+                                className="text-[10.5px] mono uppercase tracking-[0.12em] text-[var(--danger)] border border-[var(--danger)]/30 hover:bg-[var(--danger-soft)] px-2.5 py-1.5 rounded-md">
+                                Revoke
+                              </button>
+                            ) : (
+                              <span className={'text-[10px] mono uppercase tracking-[0.12em] font-semibold px-2 py-1 rounded ' +
+                                (l.status === 'Vaulted' ? 'bg-[var(--verified-soft)] text-[var(--verified)]'
+                                  : l.status === 'Denied' ? 'bg-[var(--danger-soft)] text-[var(--danger)]'
+                                  : 'bg-stone-100 text-stone-500')}>
+                                {l.status}
+                              </span>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
 
-          {/* PAGE 3: DASHBOARD */}
-          {page === 3 && (
-            <div className="h-full w-full flex flex-col pt-24 fade-in">
-              <Header step="3" title="Citizen Audit Dashboard" />
-              
-              <div className="flex-1 flex flex-col items-center justify-center px-4 w-full">
-                 <div className="max-w-3xl w-full">
-                    
-                    <div className="mb-6">
-                       <h2 className="text-2xl font-medium tracking-tight mb-1">Security Ledger</h2>
-                       <p className="text-sm text-gray-500">Track and revoke external access to your vaulted digital signature.</p>
+                <div className="flex justify-end mt-6">
+                  <button onClick={() => setPage(4)} className="btn-primary">Read summary <span aria-hidden>→</span></button>
+                </div>
+              </section>
+            )}
+
+            {/* ====== STEP 4: SUMMARY ====== */}
+            {page === 4 && (
+              <section className="reveal">
+                <PageHead
+                  eyebrow="Step 04 · Concept"
+                  title="UPI for signatures"
+                  sub="A reusable, consent-based digital signature layer for India's Digital Public Infrastructure."
+                />
+
+                <div className="card p-7 bg-[var(--ink)] text-white border-transparent">
+                  <div className="label-eyebrow" style={{ color: 'rgba(255,255,255,0.55)' }}>DSID Concept Note</div>
+                  <div className="space-y-4 text-[14.5px] text-stone-300 leading-relaxed mt-3">
+                    <p>
+                      Indian citizens repeatedly upload PNG copies of their handwritten signatures to disconnected portals — hospitals, banks, scholarships, ministries. No standard. No verification. No consent trail.
+                    </p>
+                    <p>
+                      The <strong className="text-white font-medium">Digital Signature ID (DSID)</strong> closes that gap. One enrolment under Aadhaar. One reusable ID. Every release gated by a real-time, purpose-bound consent — and recorded in a ledger the citizen can revoke at any time.
+                    </p>
+                    <blockquote className="border-l-2 border-white/30 pl-4 py-1 text-white font-medium italic">
+                      "UPI standardised digital payments. DSID can standardise digital signatures."
+                    </blockquote>
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-3 gap-3 mt-4">
+                  {[
+                    ['One enrolment', 'Verified once under Aadhaar — used anywhere a form asks for ink.'],
+                    ['Per-use consent', 'Every release is scoped to a single transaction, expires in 90s.'],
+                    ['Citizen-owned audit', 'Every access is logged, exportable, and revocable.'],
+                  ].map(([t, d]) => (
+                    <div key={t} className="card p-4">
+                      <div className="text-[14px] font-medium tracking-tight">{t}</div>
+                      <div className="text-[12.5px] text-stone-500 mt-1 leading-snug">{d}</div>
                     </div>
+                  ))}
+                </div>
 
-                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                       <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Access History</span>
-                       </div>
-                       
-                       <table className="w-full text-left border-collapse table-fixed">
-                          <thead>
-                             <tr className="border-b border-gray-100 bg-white">
-                                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-1/4">Time</th>
-                                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-1/3">Entity</th>
-                                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-1/6">Status</th>
-                                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-1/4 text-right">Data Control</th>
-                             </tr>
-                          </thead>
-                          <tbody className="text-sm bg-white">
-                             {auditLogs.map((log) => (
-                                <tr key={log.id} className="border-b border-gray-50">
-                                   <td className="px-5 py-4 font-mono text-xs text-gray-500 truncate">{log.time}</td>
-                                   <td className="px-5 py-4 font-medium text-gray-900 truncate">{log.entity}</td>
-                                   <td className="px-5 py-4">
-                                      <span className={`inline-flex items-center px-2 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wide ${log.status === 'Approved' || log.status === 'Vaulted' ? 'bg-green-100 text-green-700' : log.status === 'Revoked' ? 'bg-gray-100 text-gray-600' : 'bg-red-100 text-red-700'}`}>
-                                         {log.status}
-                                      </span>
-                                   </td>
-                                   <td className="px-5 py-4 text-right">
-                                       {log.status === 'Approved' ? (
-                                           <button onClick={() => handleRevoke(log.id)} className="text-[10px] font-bold uppercase tracking-wide text-red-600 border border-red-200 py-1.5 px-2 rounded hover:bg-red-50 transition-colors">
-                                               Revoke API
-                                           </button>
-                                       ) : (
-                                           <span className="text-[10px] text-gray-400 uppercase tracking-wide font-bold">Locked</span>
-                                       )}
-                                   </td>
-                                </tr>
-                             ))}
-                          </tbody>
-                       </table>
-                    </div>
+                <div className="flex justify-between items-center mt-7 flex-wrap gap-3">
+                  <div className="text-[11.5px] text-stone-500">
+                    Authored by <span className="font-medium text-stone-700">Sachin Gupta</span> · CDPI
+                  </div>
+                  <button onClick={reset} className="btn-ghost">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>
+                    Restart
+                  </button>
+                </div>
+              </section>
+            )}
 
-                    <div className="flex justify-end pt-6">
-                       <button onClick={() => setPage(4)} className="bg-black text-white font-medium py-3 px-6 rounded-lg hover:bg-gray-800 transition-colors">
-                          Finish & Read Summary &rarr;
-                       </button>
-                    </div>
+          </main>
 
-                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* PAGE 4: CONCEPT NOTE SUMMARY & FINISH */}
-          {page === 4 && (
-            <div className="h-full w-full flex flex-col pt-24 fade-in">
-              <Header step="4" title="System Summary" />
-              
-              <div className="flex-1 flex flex-col items-center justify-center px-4 w-full">
-                 <div className="max-w-2xl w-full">
-                    
-                    <div className="bg-gray-900 text-white p-8 rounded-xl shadow-lg mb-8">
-                       <h2 className="text-xl font-semibold mb-4 flex items-center">
-                          <svg className="w-6 h-6 mr-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                          DSID Concept Note
-                       </h2>
-                       <div className="space-y-4 text-sm text-gray-300 leading-relaxed">
-                           <p>
-                              The proposed <strong>Digital Signature ID (DSID)</strong> framework solves a critical gap in India's digital governance. Currently, citizens repeatedly upload unsecure image files of their signatures to disconnected portals.
-                           </p>
-                           <p>
-                              By integrating government-backed authentication APIs (like Aadhaar), secure storage, and real-time citizen consent, this proposed DPI layer prevents duplication, fraud, and creates true interoperability across hospitals, banks, and government systems.
-                           </p>
-                           <blockquote className="border-l-2 border-blue-400 pl-4 py-2 mt-4 text-white font-medium italic">
-                              "UPI standardized digital payments. DSID can standardize digital signatures."
-                           </blockquote>
-                       </div>
-                    </div>
-
-                    <div className="flex justify-center">
-                       <button onClick={resetApp} className="flex items-center text-sm font-semibold text-gray-500 hover:text-black uppercase tracking-wider transition-colors border border-gray-300 px-6 py-3 rounded-lg hover:border-black">
-                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                         Restart Simulation
-                       </button>
-                    </div>
-
-                 </div>
-              </div>
-            </div>
-          )}
-          
+          <OtpModal
+            open={!!modal}
+            title={modal?.title || ''}
+            message={modal?.message || ''}
+            consent={modal?.consent}
+            onCancel={(reason) => {
+              const cur = modal;
+              setModal(null);
+              if (cur?.kind === 'use' && cur?.consent && reason !== 'dismiss' && reason !== 'expired') {
+                denyUse(cur.consent);
+              }
+              if (reason === 'expired') showToast('Consent window expired');
+            }}
+            onConfirm={() => {
+              if (modal?.kind === 'enrol') confirmEnrol();
+              if (modal?.kind === 'use') confirmUse(modal.consent);
+            }}
+          />
         </div>
       );
     }
