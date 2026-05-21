@@ -36,13 +36,18 @@
       --danger: #8e1f1f;
       --danger-soft: #f7e8e6;
     }
-    html, body {
-      margin: 0; padding: 0;
-      background: var(--paper); color: var(--ink);
-      font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-    }
+	html, body, #root {
+		  margin: 0;
+		  padding: 0;
+		  width: 100%;
+		  height: 100%;
+		  overflow: hidden;
+		  background: var(--paper);
+		  color: var(--ink);
+		  font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+		  -webkit-font-smoothing: antialiased;
+		  text-rendering: optimizeLegibility;
+	}
     body::before {
       content: ''; position: fixed; inset: 0;
       pointer-events: none; z-index: 0;
@@ -252,7 +257,7 @@
        SHARED COMPONENTS
        ================================================================= */
     const ProgressBar = ({ step }) => (
-      <header className="sticky top-0 z-30 backdrop-blur-md bg-[rgba(250,249,244,0.82)] border-b border-stone-200">
+      <header className="z-30 backdrop-blur-md bg-[rgba(250,249,244,0.82)] border-b border-stone-200">
         <div className="max-w-3xl mx-auto px-5 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-7 h-7 rounded-md bg-black grid place-items-center text-white mono text-[11px] font-semibold flex-shrink-0">U</div>
@@ -281,13 +286,13 @@
       </header>
     );
 
-    const PageHead = ({ eyebrow, title, sub }) => (
-      <div className="mb-7 reveal">
-        <div className="label-eyebrow mb-3">{eyebrow}</div>
-        <h1 className="text-[28px] sm:text-[32px] leading-[1.05] tracking-[-0.02em] font-medium">{title}</h1>
-        {sub && <p className="mt-2 text-[14.5px] text-stone-500 max-w-md leading-snug">{sub}</p>}
-      </div>
-    );
+   const PageHead = ({ eyebrow, title, sub }) => (
+	  <div className="mb-4 reveal">
+		<div className="label-eyebrow mb-2">{eyebrow}</div>
+		<h1 className="text-[24px] sm:text-[28px] leading-[1.02] tracking-[-0.02em] font-medium">{title}</h1>
+		{sub && <p className="mt-1.5 text-[13px] text-stone-500 max-w-2xl leading-snug">{sub}</p>}
+	  </div>
+	);
 
     const Stamp = ({ children }) => (
       <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--verified-soft)] text-[var(--verified)] mono text-[10px] uppercase tracking-[0.12em] font-semibold">
@@ -418,7 +423,7 @@
 
       return (
         <div>
-          <div className="pad-paper rounded-xl border border-dashed border-stone-300 h-44 overflow-hidden relative">
+          <div className="pad-paper rounded-xl border border-dashed border-stone-300 h-36 overflow-hidden relative">
             <canvas
               ref={ref}
               className="w-full h-full block cursor-crosshair"
@@ -461,7 +466,7 @@
             onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
             onDragLeave={() => setDrag(false)}
             onDrop={(e) => { e.preventDefault(); setDrag(false); readFile(e.dataTransfer.files?.[0]); }}
-            className={'pad-paper rounded-xl h-44 relative grid place-items-center overflow-hidden ' +
+            className={'pad-paper rounded-xl h-36 relative grid place-items-center overflow-hidden ' +
               (drag ? 'border-2 border-dashed border-[var(--verified)]' : 'border border-dashed border-stone-300')}
           >
             {value ? (
@@ -710,10 +715,10 @@
       };
 
       return (
-        <div className="min-h-screen relative" style={{ zIndex: 1 }}>
+        <div className="h-screen overflow-hidden relative flex flex-col" style={{ zIndex: 1 }}>
           <ProgressBar step={page} />
 
-          <main className="max-w-3xl mx-auto px-5 pt-10 pb-24">
+          <main className="flex-1 max-w-3xl w-full mx-auto px-5 py-5 overflow-hidden flex items-center">
 
             {/* ====== STEP 1: ENROL ====== */}
             {page === 1 && (
@@ -939,7 +944,7 @@
                   sub="A reusable, consent-based digital signature layer for India's Digital Public Infrastructure."
                 />
 
-                <div className="card p-7 bg-[var(--ink)] text-white border-transparent">
+                <div className="card p-5 bg-[var(--ink)] text-white border-transparent">
                   <div className="label-eyebrow" style={{ color: 'rgba(255,255,255,0.55)' }}>DSID Concept Note</div>
                   <div className="space-y-4 text-[14.5px] text-stone-300 leading-relaxed mt-3">
                     <p>
@@ -954,7 +959,7 @@
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-3 gap-3 mt-4">
+                <div className="grid sm:grid-cols-3 gap-2 mt-3">
                   {[
                     ['One enrolment', 'Verified once under Aadhaar — used anywhere a form asks for ink.'],
                     ['Per-use consent', 'Every release is scoped to a single transaction, expires in 90s.'],
